@@ -10,5 +10,13 @@ reqwest = "0.11.13"
 tokio = { version = "1.22.0", features = ["full"] }
 
 [[bin]]
+name = "new"
+path = "bin/new.rs"
+
+[[bin]]
 name = "fetch"
 path = "bin/fetch.rs"
+
+[[bin]]
+name = "1"
+path = "bin/1.rs"
