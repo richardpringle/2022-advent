@@ -20,3 +20,7 @@ path = "bin/fetch.rs"
 [[bin]]
 name = "1"
 path = "bin/1.rs"
+
+[[bin]]
+name = "2"
+path = "bin/2.rs"
