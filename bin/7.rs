@@ -66,10 +66,10 @@ type Parsed = File;
 type Part1 = usize;
 type Part2 = usize;
 
+#[derive(Debug)]
 enum TreeNode {
     Leaf(File),
     Node {
-        parent: Option<Rc<RefCell<TreeNode>>>,
         name: String,
         children: Vec<Rc<RefCell<TreeNode>>>,
     },
@@ -78,42 +78,15 @@ enum TreeNode {
 impl Default for TreeNode {
     fn default() -> Self {
         Self::Node {
-            parent: Default::default(),
             name: Default::default(),
             children: Default::default(),
         }
     }
 }
 
-impl std::fmt::Debug for TreeNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Leaf(arg0) => f.debug_tuple("Leaf").field(arg0).finish(),
-            Self::Node {
-                parent,
-                name,
-                children,
-            } => f
-                .debug_struct("Node")
-                .field(
-                    "parent",
-                    &parent.as_ref().map(|parent| {
-                        let borrowed = parent.borrow();
-                        let name = borrowed.name().to_string();
-                        name
-                    }),
-                )
-                .field("name", name)
-                .field("children", children)
-                .finish(),
-        }
-    }
-}
-
 impl TreeNode {
-    fn new(parent: Option<Rc<RefCell<TreeNode>>>, name: String) -> Self {
+    fn new(name: String) -> Self {
         Self::Node {
-            parent,
             name,
             children: vec![],
         }
@@ -121,13 +94,6 @@ impl TreeNode {
 
     fn from_file(file: File) -> Self {
         Self::Leaf(file)
-    }
-
-    fn parent(&self) -> Option<Rc<RefCell<TreeNode>>> {
-        match self {
-            TreeNode::Node { parent, .. } => parent.clone(),
-            _ => None,
-        }
     }
 
     fn name(&self) -> &str {
@@ -156,11 +122,7 @@ impl TreeNode {
 
         match this {
             TreeNode::Leaf(file) => file.into(),
-            TreeNode::Node {
-                parent: _,
-                name,
-                children,
-            } => children
+            TreeNode::Node { name, children } => children
                 .into_iter()
                 .flat_map(|file| {
                     let mut borrowed = file.borrow_mut();
@@ -179,9 +141,9 @@ fn parse_input(input: &str) -> Parsed {
     let mut lines = input.trim().lines();
     lines.next(); // skip the first line, it's just creating the initial directory;
 
-    let tree = Rc::new(RefCell::new(TreeNode::new(None, "/".into())));
+    let tree = Rc::new(RefCell::new(TreeNode::new("/".into())));
 
-    let mut current_dir = tree.clone();
+    let mut current_dir = vec![tree.clone()];
 
     let mut next = lines.next();
 
@@ -192,16 +154,11 @@ fn parse_input(input: &str) -> Parsed {
 
                 match name.as_str() {
                     ".." => {
-                        let parent = {
-                            let borrowed = current_dir.borrow();
-                            borrowed.parent().unwrap()
-                        };
-
-                        current_dir = parent;
+                        current_dir.pop();
                     }
                     name => {
                         let child = {
-                            let borrowed = current_dir.borrow();
+                            let borrowed = current_dir.last().unwrap().borrow();
 
                             let child = borrowed
                                 .children()
@@ -215,7 +172,7 @@ fn parse_input(input: &str) -> Parsed {
                             child
                         };
 
-                        current_dir = child
+                        current_dir.push(child)
                     }
                 };
 
@@ -230,13 +187,13 @@ fn parse_input(input: &str) -> Parsed {
                             let (size, name) = line.split_once(' ').unwrap();
 
                             let child = if size == "dir" {
-                                TreeNode::new(current_dir.clone().into(), name.to_string())
+                                TreeNode::new(name.to_string())
                             } else {
                                 let file = File::new_file(size.parse().unwrap());
                                 TreeNode::from_file(file)
                             };
 
-                            let mut borrowed = current_dir.borrow_mut();
+                            let mut borrowed = current_dir.last().unwrap().borrow_mut();
                             borrowed.insert_child(child);
                         }
                         None => break None,
@@ -247,19 +204,7 @@ fn parse_input(input: &str) -> Parsed {
         }
     }
 
-    let mut parent = {
-        let borrowed = current_dir.borrow();
-
-        borrowed.parent().clone()
-    };
-
-    while let Some(node) = parent {
-        current_dir = node;
-        let borrowed = current_dir.borrow();
-        parent = borrowed.parent().clone();
-    }
-
-    let mut borrowed = current_dir.borrow_mut();
+    let mut borrowed = tree.borrow_mut();
     let file = borrowed.into_file();
     file.unwrap()
 }
