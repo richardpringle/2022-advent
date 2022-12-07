@@ -129,9 +129,9 @@ fn parse_input(input: &str) -> Parsed {
     while let Some(line) = next {
         match &line[0..4] {
             "$ cd" => {
-                let name = line[5..].to_string();
+                let name = &line[5..];
 
-                match name.as_str() {
+                match name {
                     ".." => current_dir.back(),
                     name => current_dir.enter(name),
                 };
