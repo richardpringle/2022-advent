@@ -36,7 +36,13 @@ impl<const N: usize> Buffer<N> {
     fn are_all_unique(&self) -> bool {
         self.0
             .into_iter()
-            .map(|val| self.0.into_iter().filter(|other| val == *other).count())
+            .map(|val| {
+                self.0
+                    .into_iter()
+                    .filter(|other| val == *other)
+                    .take(2)
+                    .count()
+            })
             .all(|val| val == 1)
     }
 }
