@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fs::read_to_string, iter::once, rc::Rc};
+use std::{collections::HashMap, fs::read_to_string, iter::once};
 
 const PROBLEM: u8 = 7;
 
@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(Debug, PartialEq, Eq)]
 enum File {
-    Dir(String, Vec<File>),
+    Dir(HashMap<String, File>),
     File(usize),
 }
 
@@ -28,27 +28,37 @@ impl File {
         Self::File(size)
     }
 
-    fn new_dir(name: String) -> Self {
-        Self::Dir(name, vec![])
+    fn new_dir() -> Self {
+        Self::Dir(Default::default())
     }
 
-    fn insert(&mut self, file: Self) {
-        if let Self::Dir(_, contents) = self {
-            contents.push(file)
+    fn insert(&mut self, name: String, file: Self) {
+        if let Self::Dir(contents) = self {
+            contents.insert(name, file);
+        }
+    }
+
+    fn remove(&mut self, name: &str) -> Option<(String, File)> {
+        match self {
+            File::Dir(map) => map.remove_entry(name),
+            _ => None,
         }
     }
 
     fn size(&self) -> usize {
         match self {
             File::File(size) => *size,
-            File::Dir(_, files) => files.iter().map(|file| file.size()).sum(),
+            File::Dir(files) => files.values().map(|file| file.size()).sum(),
         }
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = &Self> + '_> {
         match self {
-            File::Dir(_, contents) => {
-                let children = contents.into_iter().flat_map(|child| child.iter());
+            File::Dir(contents) => {
+                let children = contents
+                    .into_iter()
+                    .map(|(_, file)| file)
+                    .flat_map(|child| child.iter());
 
                 Box::new(once(self).chain(children))
             }
@@ -66,74 +76,39 @@ type Parsed = File;
 type Part1 = usize;
 type Part2 = usize;
 
-#[derive(Debug)]
-enum TreeNode {
-    Leaf(File),
-    Node {
-        name: String,
-        children: Vec<Rc<RefCell<TreeNode>>>,
-    },
-}
+struct WorkingDirectory(Vec<(String, File)>);
 
-impl Default for TreeNode {
-    fn default() -> Self {
-        Self::Node {
-            name: Default::default(),
-            children: Default::default(),
-        }
-    }
-}
-
-impl TreeNode {
-    fn new(name: String) -> Self {
-        Self::Node {
-            name,
-            children: vec![],
-        }
+impl WorkingDirectory {
+    fn new(name: String, file: File) -> Self {
+        Self(vec![(name, file)])
     }
 
-    fn from_file(file: File) -> Self {
-        Self::Leaf(file)
+    fn back(&mut self) {
+        let (name, file) = self.0.pop().unwrap();
+
+        self.0
+            .last_mut()
+            .map(|(_, dir)| dir)
+            .unwrap()
+            .insert(name.to_string(), file);
     }
 
-    fn name(&self) -> &str {
-        match self {
-            TreeNode::Node { name, .. } => name.as_str(),
-            _ => "",
-        }
+    fn enter(&mut self, name: &str) {
+        let child = self.0.last_mut().unwrap().1.remove(name).unwrap();
+        self.0.push(child);
     }
 
-    fn children(&self) -> impl Iterator<Item = Rc<RefCell<TreeNode>>> + '_ {
-        match self {
-            TreeNode::Node { children, .. } => children.into_iter().cloned(),
-            _ => (&[]).into_iter().cloned(),
-        }
+    fn insert(&mut self, name: String, file: File) {
+        let last = self.0.last_mut().map(|file| &mut file.1).unwrap();
+        last.insert(name, file);
     }
 
-    fn insert_child(&mut self, node: TreeNode) {
-        match self {
-            TreeNode::Node { children, .. } => children.push(Rc::new(RefCell::new(node))),
-            _ => (),
+    fn into_file(mut self) -> File {
+        while self.0.len() > 1 {
+            self.back();
         }
-    }
 
-    fn into_file(&mut self) -> Option<File> {
-        let this = std::mem::take(self);
-
-        match this {
-            TreeNode::Leaf(file) => file.into(),
-            TreeNode::Node { name, children } => children
-                .into_iter()
-                .flat_map(|file| {
-                    let mut borrowed = file.borrow_mut();
-                    borrowed.into_file()
-                })
-                .fold(File::new_dir(name), |mut dir, file| {
-                    dir.insert(file);
-                    dir
-                })
-                .into(),
-        }
+        self.0.pop().unwrap().1
     }
 }
 
@@ -141,9 +116,9 @@ fn parse_input(input: &str) -> Parsed {
     let mut lines = input.trim().lines();
     lines.next(); // skip the first line, it's just creating the initial directory;
 
-    let tree = Rc::new(RefCell::new(TreeNode::new("/".into())));
+    let file = File::new_dir();
 
-    let mut current_dir = vec![tree.clone()];
+    let mut current_dir = WorkingDirectory::new(String::from("/"), file);
 
     let mut next = lines.next();
 
@@ -153,27 +128,8 @@ fn parse_input(input: &str) -> Parsed {
                 let name = line[5..].to_string();
 
                 match name.as_str() {
-                    ".." => {
-                        current_dir.pop();
-                    }
-                    name => {
-                        let child = {
-                            let borrowed = current_dir.last().unwrap().borrow();
-
-                            let child = borrowed
-                                .children()
-                                .find(|child| {
-                                    let borrowed = child.borrow();
-                                    borrowed.name() == name
-                                })
-                                .unwrap()
-                                .clone();
-
-                            child
-                        };
-
-                        current_dir.push(child)
-                    }
+                    ".." => current_dir.back(),
+                    name => current_dir.enter(name),
                 };
 
                 next = lines.next();
@@ -182,21 +138,18 @@ fn parse_input(input: &str) -> Parsed {
             "$ ls" => {
                 next = loop {
                     match lines.next() {
-                        Some(s) if s.starts_with('$') => break Some(s),
-                        Some(line) => {
+                        Some(line) if !line.starts_with('$') => {
                             let (size, name) = line.split_once(' ').unwrap();
 
                             let child = if size == "dir" {
-                                TreeNode::new(name.to_string())
+                                File::new_dir()
                             } else {
-                                let file = File::new_file(size.parse().unwrap());
-                                TreeNode::from_file(file)
+                                File::new_file(size.parse().unwrap())
                             };
 
-                            let mut borrowed = current_dir.last().unwrap().borrow_mut();
-                            borrowed.insert_child(child);
+                            current_dir.insert(name.to_string(), child);
                         }
-                        None => break None,
+                        line => break line,
                     }
                 }
             }
@@ -204,9 +157,7 @@ fn parse_input(input: &str) -> Parsed {
         }
     }
 
-    let mut borrowed = tree.borrow_mut();
-    let file = borrowed.into_file();
-    file.unwrap()
+    current_dir.into_file()
 }
 
 fn part_1(parsed: &Parsed) -> Part1 {
@@ -277,26 +228,26 @@ $ ls
     const PART_2_TEST_ANS: Part2 = 24933642;
 
     fn parsed_input() -> Parsed {
-        let mut d = Parsed::new_dir("d".into());
-        d.insert(Parsed::new_file(4060174));
-        d.insert(Parsed::new_file(8033020));
-        d.insert(Parsed::new_file(5626152));
-        d.insert(Parsed::new_file(7214296));
+        let mut d = Parsed::new_dir();
+        d.insert("j".into(), Parsed::new_file(4060174));
+        d.insert("d.log".into(), Parsed::new_file(8033020));
+        d.insert("d.ext".into(), Parsed::new_file(5626152));
+        d.insert("k".into(), Parsed::new_file(7214296));
 
-        let mut e = Parsed::new_dir("e".into());
-        e.insert(Parsed::new_file(584));
-        let mut a = Parsed::new_dir("a".into());
-        a.insert(e);
-        a.insert(Parsed::new_file(29116));
-        a.insert(Parsed::new_file(2557));
-        a.insert(Parsed::new_file(62596));
+        let mut e = Parsed::new_dir();
+        e.insert("i".into(), Parsed::new_file(584));
+        let mut a = Parsed::new_dir();
+        a.insert("e".into(), e);
+        a.insert("f".into(), Parsed::new_file(29116));
+        a.insert("g".into(), Parsed::new_file(2557));
+        a.insert("h.lst".into(), Parsed::new_file(62596));
 
-        let mut parsed = Parsed::new_dir("/".into());
+        let mut parsed = Parsed::new_dir();
 
-        parsed.insert(a);
-        parsed.insert(Parsed::new_file(14848514));
-        parsed.insert(Parsed::new_file(8504156));
-        parsed.insert(d);
+        parsed.insert("a".into(), a);
+        parsed.insert("b.txt".into(), Parsed::new_file(14848514));
+        parsed.insert("c.dat".into(), Parsed::new_file(8504156));
+        parsed.insert("d".into(), d);
 
         parsed
     }
