@@ -84,6 +84,10 @@ impl WorkingDirectory {
     }
 
     fn back(&mut self) {
+        if self.0.len() == 0 {
+            return;
+        }
+
         let (name, file) = self.0.pop().unwrap();
 
         self.0
