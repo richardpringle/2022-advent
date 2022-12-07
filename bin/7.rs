@@ -84,7 +84,7 @@ impl WorkingDirectory {
     }
 
     fn back(&mut self) {
-        if self.0.len() == 0 {
+        if self.0.len() == 1 {
             return;
         }
 
