@@ -16,12 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let parsed = parse_input(&input);
 
-    let part_1 = part_1(&parsed);
-    let part_2 = part_2(&parsed);
-
     println!("Problem {PROBLEM}");
-    println!("part-1: {:?}", part_1);
-    println!("part-2: {:?}", part_2);
+    println!("part-1: {:?}", part_1(&parsed));
+    // println!("part-2: {:?}", part_2(&parsed));
 
     Ok(())
 }
