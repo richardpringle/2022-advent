@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs::read_to_string, ops::Deref, str::FromStr};
+use std::{fmt::Debug, fs::read_to_string, ops::Deref, str::FromStr, vec::IntoIter};
 
 const PROBLEM: u8 = 10;
 
@@ -73,79 +73,62 @@ impl From<Cmd> for CycleCount {
     }
 }
 
-struct Cpu<T> {
-    cmds: T,
+struct Cpu {
+    cmds: IntoIter<Cmd>,
     x: isize,
 }
 
-impl<T: Debug> Debug for Cpu<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Cpu")
-            .field("cmds", &self.cmds)
-            .field("x", &self.x)
-            .finish()
-    }
-}
-
-impl Cpu<Vec<Cmd>> {
+impl Cpu {
     fn new() -> Self {
-        Self { cmds: vec![], x: 1 }
+        Self {
+            cmds: vec![].into_iter(),
+            x: 1,
+        }
     }
 
     fn load(&mut self, cmds: Vec<Cmd>) {
-        self.cmds = cmds;
+        self.cmds = cmds.into_iter();
     }
 
-    fn into_iter(self) -> CpuIter<impl Iterator<Item = Cmd> + Debug> {
-        let mut cmds = self.cmds.into_iter();
+    fn into_iter(self) -> CpuIter {
+        let mut cmds = self.cmds;
         let cmd = cmds.next();
 
         CpuIter {
-            cpu: Cpu {
-                cmds,
-                x: self.x,
-            },
+            cpu: Cpu { cmds, x: self.x },
             cmd,
             counter: cmd.map(CycleCount::from).unwrap_or_default(),
         }
     }
 }
 
-struct CpuIter<T> {
-    cpu: Cpu<T>,
+struct CpuIter {
+    cpu: Cpu,
     cmd: Option<Cmd>,
     counter: CycleCount,
 }
 
-impl<T: Debug> Debug for CpuIter<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CpuIter")
-            .field("cpu", &self.cpu)
-            .field("cmd", &self.cmd)
-            .field("counter", &self.counter)
-            .finish()
-    }
-}
-
-impl<T: Iterator<Item = Cmd>> Iterator for CpuIter<T> {
+impl Iterator for CpuIter {
     type Item = isize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.counter.is_done() {
+        let result = if self.counter.is_done() {
             let cmd = self.cmd.take();
 
             self.cmd = self.cpu.cmds.next();
             self.counter = self.cmd.map(CycleCount::from).unwrap_or_default();
-            self.counter.decr();
 
             cmd.map(|cmd| {
                 self.cpu.x = cmd.apply(self.cpu.x);
                 self.cpu.x
             })
         } else {
-            self.counter.decr();
             Some(self.cpu.x)
-        }
+        };
+
+        self.counter.decr();
+        
+        result
     }
 }
 
