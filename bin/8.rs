@@ -84,7 +84,7 @@ impl std::fmt::Debug for VisibilityMap<'_> {
 
         for row in self.0.iter() {
             for val in row.iter() {
-                write!(f, "{} ", if *val { 1 } else { 0 })?;
+                write!(f, "{} ", i32::from(*val))?;
             }
 
             writeln!(f)?;

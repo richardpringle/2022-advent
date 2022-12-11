@@ -72,7 +72,8 @@ fn part_2(parsed: &Parsed) -> Part2 {
         .chunks(3)
         .flat_map(|chunks| {
             HashSet::from_iter(chunks[0].intersection(&chunks[1]).copied())
-                .intersection(&chunks[2]).copied()
+                .intersection(&chunks[2])
+                .copied()
                 .collect::<Vec<&Item>>()
         })
         .map(Priority::from)

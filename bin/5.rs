@@ -172,14 +172,13 @@ fn parse_input(input: &str) -> Parsed {
             .and_then(|c| c.to_digit(10))
             .unwrap() as usize;
 
-        let rows: Vec<Crates> = lines
+        let rows = lines
             .into_iter()
-            .map(|line| Crates::from_str(line).unwrap())
-            .collect();
+            .map(|line| Crates::from_str(line).unwrap());
 
         let mut stacks = vec![Stack::new(); col_count];
 
-        rows.into_iter().rev().for_each(|row| {
+        rows.rev().for_each(|row| {
             row.0.into_iter().enumerate().for_each(|(col, val)| {
                 if let Crate(Some(c)) = val {
                     stacks[col].push(c)

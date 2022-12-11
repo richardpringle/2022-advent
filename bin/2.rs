@@ -106,10 +106,7 @@ fn parse_input(input: &str) -> Parsed {
 }
 
 fn part_1(parsed: &Parsed) -> Part1 {
-    parsed
-        .iter()
-        .map(|(oponent, me)| me.play(oponent))
-        .sum()
+    parsed.iter().map(|(oponent, me)| me.play(oponent)).sum()
 }
 
 fn part_2(parsed: &Parsed) -> Part2 {

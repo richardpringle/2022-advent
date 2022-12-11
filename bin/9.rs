@@ -51,7 +51,9 @@ impl<const N: usize> Rope<N> {
     }
 
     fn make_moves(&mut self, moves: Move) {
-        let (count, move_fn): (usize, &dyn Fn(&mut (isize, isize))) = match moves {
+        type MoveFn<'a> = &'a dyn Fn(&mut (isize, isize));
+
+        let (count, move_fn): (usize, MoveFn) = match moves {
             Move::Left(count) => (count, &|pos| {
                 pos.0 -= 1;
             }),
