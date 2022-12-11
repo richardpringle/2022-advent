@@ -115,11 +115,11 @@ impl Stacks {
 
 impl std::fmt::Debug for Stacks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "")?;
+        writeln!(f)?;
         for (i, stack) in self.0.iter().enumerate() {
             writeln!(f, "{} {:?}", i + 1, stack.0)?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -167,7 +167,7 @@ fn parse_input(input: &str) -> Parsed {
             .unwrap()
             .trim()
             .chars()
-            .filter(|c| c.is_digit(10))
+            .filter(|c| c.is_ascii_digit())
             .last()
             .and_then(|c| c.to_digit(10))
             .unwrap() as usize;

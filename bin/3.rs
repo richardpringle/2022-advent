@@ -55,7 +55,7 @@ fn parse_input(input: &str) -> Parsed {
 
 fn part_1(parsed: &Parsed) -> Part1 {
     parsed
-        .into_iter()
+        .iter()
         .flat_map(|(left, right)| left.intersection(right))
         .map(Priority::from)
         .map(|p| p.0)
@@ -64,19 +64,18 @@ fn part_1(parsed: &Parsed) -> Part1 {
 
 fn part_2(parsed: &Parsed) -> Part2 {
     let lines: Vec<HashSet<&Item>> = parsed
-        .into_iter()
+        .iter()
         .map(|(left, right)| HashSet::from_iter(left.union(right)))
         .collect();
 
     lines
         .chunks(3)
         .flat_map(|chunks| {
-            HashSet::from_iter(chunks[0].intersection(&chunks[1]).map(|item| *item))
-                .intersection(&chunks[2])
-                .map(|item| *item)
+            HashSet::from_iter(chunks[0].intersection(&chunks[1]).copied())
+                .intersection(&chunks[2]).copied()
                 .collect::<Vec<&Item>>()
         })
-        .map(|item| Priority::from(item))
+        .map(Priority::from)
         .map(|p| p.0)
         .sum()
 }

@@ -56,7 +56,7 @@ impl File {
         match self {
             File::Dir(contents) => {
                 let children = contents
-                    .into_iter()
+                    .iter()
                     .map(|(_, file)| file)
                     .flat_map(|child| child.iter());
 
@@ -94,7 +94,7 @@ impl WorkingDirectory {
             .last_mut()
             .map(|(_, dir)| dir)
             .unwrap()
-            .insert(name.to_string(), file);
+            .insert(name, file);
     }
 
     fn enter(&mut self, name: &str) {

@@ -91,7 +91,7 @@ fn parse_input(input: &str) -> Parsed {
     input
         .lines()
         .map(|line| line.trim())
-        .filter(|line| line.len() > 0)
+        .filter(|line| !line.is_empty())
         .map(|line| {
             let mut moves = line.chars().filter_map(|c| match c {
                 'A' | 'X' => Some(Move::Rock),
@@ -107,14 +107,14 @@ fn parse_input(input: &str) -> Parsed {
 
 fn part_1(parsed: &Parsed) -> Part1 {
     parsed
-        .into_iter()
+        .iter()
         .map(|(oponent, me)| me.play(oponent))
         .sum()
 }
 
 fn part_2(parsed: &Parsed) -> Part2 {
     parsed
-        .into_iter()
+        .iter()
         .map(|(oponent, me)| (oponent, Outcome::from(me)))
         .map(|(oponent, outcome)| outcome.get_my_move(oponent).play(oponent))
         .sum()

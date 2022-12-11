@@ -51,7 +51,7 @@ impl<const N: usize> Rope<N> {
     }
 
     fn make_moves(&mut self, moves: Move) {
-        let (count, move_fn): (usize, &dyn Fn(&mut (isize, isize)) -> ()) = match moves {
+        let (count, move_fn): (usize, &dyn Fn(&mut (isize, isize))) = match moves {
             Move::Left(count) => (count, &|pos| {
                 pos.0 -= 1;
             }),
@@ -147,7 +147,7 @@ fn parse_input(input: &str) -> Parsed {
 
 fn part_1(parsed: &Parsed) -> Part1 {
     parsed
-        .into_iter()
+        .iter()
         .fold(Rope::<2>::new(), |mut rope, m| {
             rope.make_moves(*m);
             rope
@@ -157,7 +157,7 @@ fn part_1(parsed: &Parsed) -> Part1 {
 
 fn part_2(parsed: &Parsed) -> Part2 {
     parsed
-        .into_iter()
+        .iter()
         .fold(Rope::<10>::new(), |mut rope, m| {
             rope.make_moves(*m);
             rope

@@ -64,7 +64,7 @@ fn solve<const N: usize>(parsed: &Parsed) -> usize {
         return index;
     }
 
-    for val in parsed.into_iter().skip(N) {
+    for val in parsed.iter().skip(N) {
         index += 1;
         buffer.insert(*val);
 

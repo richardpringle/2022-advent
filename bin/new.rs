@@ -74,22 +74,19 @@ mod tests {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let problem_number = std::env::args()
-        .next_back()
-        .as_ref()
-        .map(String::as_str)
+        .next_back().as_deref()
         .map(u8::from_str)
-        .map(Result::ok)
-        .flatten()
+        .and_then(Result::ok)
         .expect("Must provide problem number to create file");
 
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(format!("bin/{problem_number}.rs"))
-        .expect(&format!("code for problem-{problem_number} already exits"));
+        .unwrap_or_else(|_| panic!("code for problem-{problem_number} already exits"));
 
     file.write_all(
-        &CODE_TEMPLATE
+        CODE_TEMPLATE
             .replace("{}", &problem_number.to_string())
             .as_bytes(),
     )?;
@@ -97,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut file = OpenOptions::new().append(true).open("Cargo.toml")?;
 
     file.write_all(
-        &TOML_TEMPLATE
+        TOML_TEMPLATE
             .replace("{}", &problem_number.to_string())
             .as_bytes(),
     )?;

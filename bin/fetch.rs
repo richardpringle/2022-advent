@@ -5,12 +5,9 @@ use tokio::fs;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let problem_number = std::env::args()
-        .next_back()
-        .as_ref()
-        .map(String::as_str)
+        .next_back().as_deref()
         .map(u8::from_str)
-        .map(Result::ok)
-        .flatten()
+        .and_then(Result::ok)
         .expect("Must provide problem number to fetch input");
 
     let cookie = fs::read_to_string(".cookie").await?;

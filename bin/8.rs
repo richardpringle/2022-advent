@@ -25,7 +25,7 @@ impl std::fmt::Debug for Forest {
                 write!(f, "{} ", val)?;
             }
 
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())
@@ -87,7 +87,7 @@ impl std::fmt::Debug for VisibilityMap<'_> {
                 write!(f, "{} ", if *val { 1 } else { 0 })?;
             }
 
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())
