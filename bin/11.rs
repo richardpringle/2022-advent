@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Problem {PROBLEM}");
     println!("part-1: {:?}", part_1(&parsed));
-    // println!("part-2: {:?}", part_2(&parsed));
+    println!("part-2: {:?}", part_2(&parsed));
 
     Ok(())
 }
@@ -45,11 +45,12 @@ impl Monkey {
         }
     }
 
-    fn inspect_and_throw_items<const N: usize>(&mut self, monkeys: &Monkeys) {
+    fn inspect_and_throw_items<const N: usize>(&mut self, monkeys: &Monkeys, magic_number: usize) {
         let items = std::mem::take(&mut self.items).into_iter();
 
         let items = items
             .map(|item| self.operation.operate(item))
+            .map(|item| Item(item.0 % magic_number))
             .map(|item| Item(item.0 / N));
 
         for item in items {
@@ -225,16 +226,16 @@ fn part_1(parsed: &Parsed) -> Part1 {
     for _round in 0..20 {
         for i in 0..monkeys.len() {
             let mut monkey = monkeys[i].borrow_mut();
-            monkey.inspect_and_throw_items::<3>(&monkeys);
+            monkey.inspect_and_throw_items::<3>(&monkeys, usize::MAX);
         }
     }
 
     monkeys
         .into_iter()
-        .map(|monkey| dbg!(monkey.borrow().inspection_count))
+        .map(|monkey| monkey.borrow().inspection_count)
         .fold(TwoLargest::new(), |mut largest, count| {
             largest.insert(count);
-            dbg!(largest)
+            largest
         })
         .into()
 }
@@ -242,19 +243,21 @@ fn part_1(parsed: &Parsed) -> Part1 {
 fn part_2(parsed: &Parsed) -> Part2 {
     let monkeys = parsed.clone();
 
-    for _round in 0..20 {
+    let magic_number = monkeys.iter().map(|monkey| monkey.borrow().test.divisor).product();
+
+    for _round in 0..10_000 {
         for i in 0..monkeys.len() {
             let mut monkey = monkeys[i].borrow_mut();
-            monkey.inspect_and_throw_items::<1>(&monkeys);
+            monkey.inspect_and_throw_items::<1>(&monkeys, magic_number);
         }
     }
 
     monkeys
         .into_iter()
-        .map(|monkey| dbg!(monkey.borrow().inspection_count))
+        .map(|monkey| monkey.borrow().inspection_count)
         .fold(TwoLargest::new(), |mut largest, count| {
             largest.insert(count);
-            dbg!(largest)
+            largest
         })
         .into()
 }
