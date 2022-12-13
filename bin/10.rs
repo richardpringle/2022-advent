@@ -127,7 +127,7 @@ impl Iterator for CpuIter {
         };
 
         self.counter.decr();
-        
+
         result
     }
 }
